@@ -1,5 +1,5 @@
 # Must match https://<user-or-org>.github.io/<repo> — update this when forking the template.
-base_url = "https://edwbennett.github.io/rs-hello"
+base_url = "https://edwbennett.github.io/rs-op57"
 
 title = "Hello, Zola!"
 description = "A minimal Zola site hosted on GitHub Pages."
