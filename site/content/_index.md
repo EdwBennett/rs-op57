@@ -1,6 +1,8 @@
 +++
-title = "Loading rs-op57 primes…"
+title = "rs-op57 primes"
 +++
 
-This sentence is computed in your browser by Rust compiled to WebAssembly, then deployed to
+Today's prime numbers are {{ <prime n={1} /> }} and {{ <prime n={2} /> }}.
+
+These two numbers are computed in your browser by Rust compiled to WebAssembly, then deployed to
 GitHub Pages via the accompanying GitHub Actions workflow.

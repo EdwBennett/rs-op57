@@ -29,7 +29,7 @@
 
   <body>
     <main>
-      <h1 id="primes">{{ section.title }}</h1>
+      <h1>{{ section.title }}</h1>
       {{ section.content | safe }}
     </main>
 
@@ -38,9 +38,13 @@
 
       async function run() {
         await init();
-        const [first, second] = randomConsecutivePrimes();
-        document.getElementById("primes").textContent =
-          `Today's prime numbers are ${first} and ${second}`;
+        // Only fills the `prime` component placeholders written in
+        // content/_index.md (see templates/components.html); all the
+        // wording around them is the Markdown's.
+        const primes = randomConsecutivePrimes();
+        for (const el of document.querySelectorAll("[data-prime]")) {
+          el.textContent = String(primes[Number(el.dataset.prime) - 1]);
+        }
       }
 
       run();
