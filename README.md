@@ -64,6 +64,12 @@ tools/run-e2e-tests
 which is just `cd e2e && npx playwright test` — see that script for options (e.g. `--headed` to
 watch it run in a real browser window).
 
+To run everything — `cargo test --workspace`, then the e2e tests (only if the Rust tests pass):
+
+```sh
+tools/run-all-tests
+```
+
 ## Deploying to GitHub Pages
 
 1. In the repo settings, go to **Pages** and set **Source** to **GitHub Actions**.
