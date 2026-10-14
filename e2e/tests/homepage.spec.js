@@ -15,6 +15,6 @@ test("homepage shows two consecutive primes", async ({ page }) => {
 
   // The wording around the numbers comes from the Markdown, untouched.
   await expect(page.locator("main p").first()).toHaveText(
-    /^Today's prime numbers are \d+ and \d+\.$/,
+    /^Today's rs-op57 prime numbers are \d+ and \d+\.$/,
   );
 });
