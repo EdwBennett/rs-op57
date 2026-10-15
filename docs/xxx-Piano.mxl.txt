@@ -7,3 +7,5 @@ A valid compressed MusicXML file exported from MuseScore Studio 4.7.5. It is a p
 - Two tempo markings (144 and 180). These may print on top of each other.
 - Check the first left-hand note. It's D♭2 while the right hand starts on C4. The other two beats are the same notes two octaves apart, so this may be a typo.
 - File name case. The file is xxx-Piano.mxl with a capital P, and the HTML fetches that exact name. The site is served case-sensitively, so a lowercase xxx-piano.mxl will not load.
+
+ discuss only, no coding: fix the MuseScore score issues

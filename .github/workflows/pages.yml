@@ -34,6 +34,8 @@ jobs:
       - name: Build hello-core for the browser
         working-directory: crates/hello-core
         run: wasm-pack build --target web --out-dir ../../site/static/wasm
+      - name: Fetch Verovio for the piano score page
+        run: tools/fetch-verovio
       - name: Build Zola site and upload Pages artifact
         uses: getzola/github-pages@066755243e69f508fd1a74739fbf1a65f656c790
         with:

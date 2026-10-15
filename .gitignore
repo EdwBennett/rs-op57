@@ -1,6 +1,7 @@
 /target
 /site/public
 /site/static/wasm
+/site/static/verovio
 
 /e2e/node_modules
 /e2e/test-results

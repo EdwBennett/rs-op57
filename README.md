@@ -17,9 +17,9 @@ A template for a Rust workspace with a shared library, a CLI, and a
 | --- | --- |
 | `crates/hello-core` | Shared logic (`random_consecutive_primes`, bare numbers only), compiled both natively (`rlib`, for `hello-cli`) and to WebAssembly (`cdylib`, for the Zola site). Presentation (sentence text, DOM updates) lives in each consumer, not here. |
 | `crates/hello-cli` | Command-line consumer of `hello-core`. |
-| `site/` | Zola static site — not a Rust crate, no `Cargo.toml` — deployed to GitHub Pages. Loads `hello-core` as WASM and builds the displayed sentence in its own inline JS. |
+| `site/` | Zola static site — not a Rust crate, no `Cargo.toml` — deployed to GitHub Pages. Loads `hello-core` as WASM and builds the displayed sentence in its own inline JS. The `/piano/` page (`site/content/piano/`, a page bundle with its MusicXML score) engraves the score in the browser with a self-hosted, pinned [Verovio](https://www.verovio.org) (LGPL-3.0-or-later) — see `tools/fetch-verovio`. |
 | `.github/workflows` | `ci.yml` (fmt, clippy, tests, WASM + site build check) and `pages.yml` (builds the WASM bundle, then deploys the site). |
-| `tools/` | Personal local-dev scripts, not part of the published site or CI — see `docs/Run local-only Zola html_css_javascript_wasm webpage.md`. `rebuild-my-zola-site` is also run automatically by a Claude Code hook (`.claude/settings.json` / `.claude/hooks/`) on `site/` or `hello-core` changes. `run-e2e-tests` is the exception — it's portable, see below. |
+| `tools/` | Personal local-dev scripts, not part of the published site or CI — see `docs/Run local-only Zola html_css_javascript_wasm webpage.md`. `rebuild-my-zola-site` is also run automatically by a Claude Code hook (`.claude/settings.json` / `.claude/hooks/`) on `site/` or `hello-core` changes. `run-e2e-tests` and `fetch-verovio` are the exceptions — they're portable (`fetch-verovio` also runs in both workflows). |
 | `e2e/` | Playwright end-to-end test(s) for the site — see "Testing the site end-to-end" below. |
 
 ## Run
@@ -36,12 +36,15 @@ Site (needs [Zola](https://www.getzola.org/documentation/getting-started/install
 ```sh
 cd crates/hello-core
 wasm-pack build --target web --out-dir ../../site/static/wasm
-cd ../../site
+cd ../..
+tools/fetch-verovio
+cd site
 zola serve
 ```
 
 `site/static/wasm/` is generated (gitignored) — rebuild it with the `wasm-pack` command above
-whenever `hello-core` changes.
+whenever `hello-core` changes. `site/static/verovio/` is generated (gitignored) too, by
+`tools/fetch-verovio` (a no-op once the pinned version is in place; edit the script to upgrade).
 
 ## Testing the site end-to-end
 

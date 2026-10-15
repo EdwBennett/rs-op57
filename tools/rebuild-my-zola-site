@@ -32,6 +32,8 @@ mkdir -p "$REPO_DIR/site/static/wasm"
 wasm-bindgen --target web --out-dir "$REPO_DIR/site/static/wasm" \
   "$REPO_DIR/target/wasm32-unknown-unknown/release/hello_core.wasm"
 
+"$REPO_DIR/tools/fetch-verovio"
+
 echo "==> Building the Zola site into $LOCAL_SITE_DIR"
 zola --root "$REPO_DIR/site" build \
   --base-url "$LOCAL_BASE_URL" \

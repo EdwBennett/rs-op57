@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+# Downloads a pinned release of the Verovio music-engraving toolkit (C++
+# compiled to WASM, LGPL-3.0-or-later — https://www.verovio.org) from the
+# npm registry into site/static/verovio/, so the site serves its own copy
+# rather than loading it from verovio.org at runtime. Used by the piano
+# score page (site/templates/piano.html).
+#
+# Portable — no Node.js/npm needed, just curl, tar and openssl. The tarball
+# is checked against npm's published sha512 integrity before anything is
+# copied. A no-op if the pinned version is already in place.
+#
+# site/static/verovio/ is generated (gitignored), like site/static/wasm/.
+# Run by e2e/serve-site.sh, tools/rebuild-my-zola-site and both GitHub
+# workflows; run it by hand before a bare `zola serve`.
+#
+# To upgrade: change VERSION, then set INTEGRITY to the output of
+#   npm view verovio@<VERSION> dist.integrity
+set -euo pipefail
+
+VERSION="6.3.0"
+INTEGRITY="sha512-1p6WhP/w3WrAhPVDTNUDH9UVPAZOnHnZVTWxclE8haHccVI/q8c+99vLH6rRgL9MuYaFR9HF4UJD6MyW2CfMwg=="
+
+SCRIPT_PATH="$(readlink -f "${BASH_SOURCE[0]}")"
+REPO_DIR="$(cd "$(dirname "$SCRIPT_PATH")/.." && pwd)"
+DEST="$REPO_DIR/site/static/verovio"
+
+if [ "$(cat "$DEST/VERSION" 2>/dev/null)" = "$VERSION" ]; then
+  echo "==> Verovio $VERSION already in site/static/verovio"
+  exit 0
+fi
+
+echo "==> Fetching Verovio $VERSION from the npm registry"
+tmp="$(mktemp -d)"
+trap 'rm -rf "$tmp"' EXIT
+
+curl -fsSL -o "$tmp/verovio.tgz" \
+  "https://registry.npmjs.org/verovio/-/verovio-$VERSION.tgz"
+
+actual="sha512-$(openssl dgst -sha512 -binary "$tmp/verovio.tgz" | base64 | tr -d '\n')"
+if [ "$actual" != "$INTEGRITY" ]; then
+  echo "Verovio $VERSION tarball failed its integrity check:" >&2
+  echo "  expected $INTEGRITY" >&2
+  echo "  got      $actual" >&2
+  exit 1
+fi
+
+tar -xzf "$tmp/verovio.tgz" -C "$tmp"
+
+# Only the ES-module build is needed: verovio.mjs is the small JS toolkit
+# API, verovio-module.mjs the Emscripten module with the WASM embedded.
+rm -rf "$DEST"
+mkdir -p "$DEST"
+cp "$tmp/package/dist/verovio.mjs" "$tmp/package/dist/verovio-module.mjs" "$DEST/"
+echo "$VERSION" >"$DEST/VERSION"
+echo "==> Verovio $VERSION installed in site/static/verovio"

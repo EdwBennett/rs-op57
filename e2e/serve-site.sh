@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Builds hello-core to WASM and starts a throwaway `zola serve` for the
-# Playwright test suite (see playwright.config.js's `webServer`).
+# Builds hello-core to WASM, fetches Verovio, and starts a throwaway
+# `zola serve` for the Playwright test suite (see playwright.config.js's
+# `webServer`).
 #
 # Not meant to be run by hand — `npx playwright test` (or
 # ../tools/run-e2e-tests) starts and stops this automatically. Deliberately
@@ -17,6 +18,8 @@ export PATH="${CARGO_HOME:-$HOME/.cargo}/bin:$PATH"
 
 echo "==> Building hello-core for wasm32-unknown-unknown"
 (cd crates/hello-core && wasm-pack build --target web --out-dir ../../site/static/wasm)
+
+tools/fetch-verovio
 
 echo "==> Serving the Zola site for e2e tests"
 # --no-port-append matters: --base-url already names the port, and zola
