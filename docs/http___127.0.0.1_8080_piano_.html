@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="A minimal Zola site hosted on GitHub Pages.">
+    <title>rs-op57 piano score | Hello, Zola!</title>
+
+    <style>
+      :root {
+        color-scheme: light dark;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          sans-serif;
+      }
+
+      body {
+        max-width: 42rem;
+        margin: 0 auto;
+        padding: 4rem 1.25rem;
+        line-height: 1.65;
+      }
+
+      h1 {
+        font-size: clamp(2rem, 6vw, 3.5rem);
+        line-height: 1.1;
+      }
+    </style>
+    
+    <style>
+      .score-nav {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+      }
+
+      .score-nav button {
+        font: inherit;
+        min-width: 2.75rem;
+      }
+
+      #score {
+        margin-top: 1rem;
+        /* Safety net only: the layout is sized to fit (see layoutWidth). */
+        overflow-x: auto;
+      }
+
+      /* Verovio draws in black: glyph fills use the SVG default, and its
+         inner <svg> sets color="black" for the strokes. Make both follow
+         the page's text colour so the score shows in dark mode too. */
+      #score svg {
+        display: block;
+        color: CanvasText;
+        fill: currentColor;
+      }
+
+      #score svg.definition-scale {
+        color: inherit;
+      }
+    </style>
+
+  </head>
+
+  <body>
+    <main>
+      
+      <h1>rs-op57 piano score</h1>
+      <p>This score is engraved in your browser by <a rel="external" href="https://www.verovio.org">Verovio</a>, a music-engraving
+library compiled to WebAssembly.</p>
+<p><a href="http://127.0.0.1:8080/">Back to the home page</a></p>
+
+
+      <div class="score-nav" hidden>
+        <button id="prev" type="button" aria-label="Previous page">◀</button>
+        <span id="page-info"></span>
+        <button id="next" type="button" aria-label="Next page">▶</button>
+      </div>
+      <p id="score-status" role="status">Loading the score engine…</p>
+      <div id="score" data-score-url="http://127.0.0.1:8080/piano/op57.mxl"></div>
+
+    </main>
+
+    
+    <script type="module">
+      // Verovio's zoom, as a percentage. Its layout units are 1/SCALE% of
+      // a CSS pixel, so the page width it lays out to is scaled to match.
+      const SCALE = 40;
+
+      const scoreEl = document.getElementById("score");
+      const statusEl = document.getElementById("score-status");
+      const navEl = document.querySelector(".score-nav");
+      const prevEl = document.getElementById("prev");
+      const nextEl = document.getElementById("next");
+      const pageInfoEl = document.getElementById("page-info");
+
+      // The width of #score, in Verovio units, so each system fills the
+      // column without overflowing it.
+      const layoutWidth = () => Math.floor((scoreEl.clientWidth * 100) / SCALE);
+
+      async function run() {
+        // Started first so the score downloads while Verovio (~7 MB) does.
+        const scoreResponse = fetch(scoreEl.dataset.scoreUrl);
+
+        // Imported here rather than statically, so a failed download
+        // reaches the catch below instead of silently stopping the script.
+        const [{ default: createVerovioModule }, { VerovioToolkit }] = await Promise.all([
+          import("http://127.0.0.1:8080/verovio/verovio-module.mjs"),
+          import("http://127.0.0.1:8080/verovio/verovio.mjs"),
+        ]);
+        const tk = new VerovioToolkit(await createVerovioModule());
+        tk.setOptions({
+          scale: SCALE,
+          pageWidth: layoutWidth(),
+          adjustPageHeight: true,
+          breaks: "auto",
+        });
+
+        statusEl.textContent = "Loading the score…";
+        const response = await scoreResponse;
+        if (!response.ok) {
+          throw new Error(`fetching ${response.url} failed (HTTP ${response.status})`);
+        }
+        // Handles the zipped .mxl form of MusicXML.
+        if (!tk.loadZipDataBuffer(await response.arrayBuffer())) {
+          throw new Error("Verovio could not read the score");
+        }
+
+        let page = 1;
+        let total = tk.getPageCount();
+        const show = () => {
+          scoreEl.innerHTML = tk.renderToSVG(page);
+          pageInfoEl.textContent = `${page} / ${total}`;
+          prevEl.disabled = page <= 1;
+          nextEl.disabled = page >= total;
+        };
+        prevEl.addEventListener("click", () => {
+          if (page > 1) {
+            page--;
+            show();
+          }
+        });
+        nextEl.addEventListener("click", () => {
+          if (page < total) {
+            page++;
+            show();
+          }
+        });
+
+        // Re-flow the score into the new width when the column resizes
+        // (window resize, phone rotation), keeping the same page if it
+        // still exists.
+        let lastWidth = layoutWidth();
+        new ResizeObserver(() => {
+          const width = layoutWidth();
+          if (width === lastWidth) return;
+          lastWidth = width;
+          tk.setOptions({ pageWidth: width });
+          tk.redoLayout();
+          total = tk.getPageCount();
+          page = Math.min(page, total);
+          show();
+        }).observe(scoreEl);
+
+        show();
+        statusEl.hidden = true;
+        navEl.hidden = false;
+      }
+
+      run().catch((err) => {
+        console.error(err);
+        statusEl.textContent = `Could not display the score: ${err.message}`;
+      });
+    </script>
+
+  </body>
+</html>
