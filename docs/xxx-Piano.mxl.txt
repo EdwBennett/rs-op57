@@ -9,3 +9,5 @@ A valid compressed MusicXML file exported from MuseScore Studio 4.7.5. It is a p
 - File name case. The file is xxx-Piano.mxl with a capital P, and the HTML fetches that exact name. The site is served case-sensitively, so a lowercase xxx-piano.mxl will not load.
 
  discuss only, no coding: fix the MuseScore score issues
+
+ discuss only, no coding: making rests clickable too

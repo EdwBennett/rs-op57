@@ -1,0 +1,43 @@
+Clicking a note in the score now highlights it in red and shows a Rust-generated description of it below the score. Everything passes: 17 Rust tests, 8 browser tests, and the fmt and clippy checks. I've also rebuilt your local site, so you can try it now at http://127.0.0.1:8080/piano/.
+
+For the third right-hand note, the description reads:
+
+▎ A♭3 — sixteenth note on the treble staff (staff 1), measure 1 (the opening upbeat), 2½ eighths into the measure. Key signature: 4 flats (A♭ major or F minor). Time signature: 12/8. MIDI note 56, 207.7 Hz.
+
+One change from the plan we discussed: Rust reads the MEI itself, not JavaScript. Passing about ten separate values into describe_note would have been clumsy. Instead, the page hands the whole MEI to Rust once (new NoteIndex(tk.getMEI())) and then calls describeNote(id) for each click. This also means cargo test can check the descriptions against the real MEI from this score. It added one small dependency, roxmltree, a pure-Rust XML reader.
+
+Rust (crates/hello-core/src/notes.rs)
+- What it works out for each note:
+  - The pitch, including flats that come from the key signature (the trap I found earlier).
+  - Note length, dots, grace notes and chords.
+  - Staff and clef, and changes of clef, key or time signature part-way through.
+  - The measure, including spotting the incomplete opening measure.
+  - Where in the measure the note starts, plus its MIDI number and frequency.
+- WebAssembly wrapper in lib.rs: a NoteIndex class with a describeNote method.
+- Tests:
+  - 9 unit tests using a small hand-written score that covers chords, dots, grace notes, written accidentals, clef and key changes, and unusual (microtonal) accidentals.
+  - 3 tests in tests/describe_note.rs against the real MEI Verovio produces for op57, saved in tests/fixtures/op57.mei.
+
+Page (site/templates/piano.html)
+- Clicking: a click picks the note nearest the pointer, within 24px, because the noteheads are only about 7px wide. A click far from any note does nothing.
+- Highlight: the selected note turns red (a darker red in light mode, a lighter one in dark mode). The highlight survives turning the page or resizing the window.
+- Description: it appears in a paragraph under the score, which screen readers announce.
+- Repeatable ids: I set Verovio's xmlIdSeed: 1 option so note ids are the same on every load. The Rust test file depends on this, and a browser test checks that the ids still match it.
+
+Browser tests (in e2e/tests/piano.spec.js)
+- Click and highlight, in light and dark mode:
+  - Clicking a note highlights it, and a screenshot shows red pixels on that note only.
+  - The exact description text appears.
+  - Clicking another note moves both the highlight and the description.
+- Phone width: a tap 12px beside a note still selects it, and a tap far away changes nothing.
+- Checking the test can fail: with the highlight colour removed, the click test failed as it should.
+
+Things to know
+- In the test browser the ♭ in the description looks small. That's the font, not the text. Check how it looks in your own browser.
+- If you upgrade Verovio, the ids in its MEI may change. Regenerate crates/hello-core/tests/fixtures/op57.mei; the test file explains how.
+- Not done yet:
+  - Clicking rests.
+  - Selecting notes with the keyboard.
+  - Chord and microtonal handling are only tested with the hand-written score, since op57 has neither so far.
+
+Nothing is committed.

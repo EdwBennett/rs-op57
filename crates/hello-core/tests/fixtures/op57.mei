@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="https://music-encoding.org/schema/dev/mei-all.rng" type="application/xml" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<?xml-model href="https://music-encoding.org/schema/dev/mei-all.rng" type="application/xml" schematypens="http://purl.oclc.org/dsdl/schematron"?>
+<mei xmlns="http://www.music-encoding.org/ns/mei" meiversion="6.0-dev">
+   <meiHead xml:id="moqsi69">
+      <fileDesc xml:id="fjft1g2">
+         <titleStmt xml:id="t168fb37">
+            <title>Untitled score</title>
+            <respStmt>
+               <persName role="composer">Composer / arranger</persName>
+            </respStmt>
+         </titleStmt>
+         <pubStmt xml:id="pfnjo7e">
+            <date isodate="2026-10-14" type="encoding-date">2026-10-14</date>
+         </pubStmt>
+      </fileDesc>
+      <encodingDesc xml:id="emlovzj">
+         <appInfo xml:id="a13jbbey">
+            <application xml:id="apw8dyc" isodate="2026-10-15T08:23:06" version="6.3.0-425dd7b">
+               <name xml:id="n1kjeix0">Verovio</name>
+               <p xml:id="p9jzia9">Transcoded from MusicXML</p>
+            </application>
+         </appInfo>
+      </encodingDesc>
+   </meiHead>
+   <music>
+      <body>
+         <mdiv xml:id="v3bpgbh">
+            <score xml:id="wtn72u">
+               <scoreDef xml:id="x14otqmf">
+                  <pgHead xml:id="b1bcu6sn" func="first">
+                     <rend xml:id="zmyzslu" halign="left" valign="top">Piano</rend>
+                  </pgHead>
+                  <staffGrp xml:id="c1k4iy3e">
+                     <staffGrp xml:id="P1" bar.thru="true">
+                        <grpSym xml:id="z2gqwr3" symbol="brace" />
+                        <instrDef xml:id="d1blotdo" midi.channel="0" midi.instrnum="0" midi.volume="78%" />
+                        <staffDef xml:id="fsm35er" n="1" lines="5" ppq="4">
+                           <clef xml:id="m1q84ocf" shape="G" line="2" />
+                           <keySig xml:id="n1gzuhvg" sig="4f" />
+                           <meterSig xml:id="o1vw1hrc" count="12" unit="8" />
+                        </staffDef>
+                        <staffDef xml:id="p36inxr" n="2" lines="5" ppq="4">
+                           <clef xml:id="w1cybpcc" shape="F" line="4" />
+                           <keySig xml:id="x15wwqth" sig="4f" />
+                           <meterSig xml:id="yv3lqdm" count="12" unit="8" />
+                        </staffDef>
+                     </staffGrp>
+                  </staffGrp>
+               </scoreDef>
+               <section xml:id="yhbsl03">
+                  <expansion plist="#gjwwkjn" xml:id="hzub3xf" />
+                  <section xml:id="gjwwkjn">
+                     <measure xml:id="a1pfogn4" right="end" metcon="false" n="1">
+                        <staff xml:id="j1mj6nxn" n="1">
+                           <layer xml:id="t3elz0m" n="1">
+                              <note xml:id="u1bb0tuc" dur.ppq="4" dur="4" oct="4" pname="c" stem.dir="up" />
+                              <beam xml:id="v6sh6uc">
+                                 <note xml:id="wgj8qwy" dur.ppq="1" dur="16" oct="4" pname="c" stem.dir="up" />
+                                 <note xml:id="xfggj11" dur.ppq="1" dur="16" oct="3" pname="a" stem.dir="up" accid.ges="f" />
+                              </beam>
+                           </layer>
+                        </staff>
+                        <staff xml:id="k1d0qcvg" n="2">
+                           <layer xml:id="zfx25hn" n="5">
+                              <note xml:id="a3ie8ud" dur.ppq="4" dur="4" oct="2" pname="d" stem.dir="up" accid.ges="f" />
+                              <beam xml:id="c1kyp1ws">
+                                 <note xml:id="d1eyoooy" dur.ppq="1" dur="16" oct="2" pname="c" stem.dir="up" />
+                                 <note xml:id="ewtw03u" dur.ppq="1" dur="16" oct="1" pname="a" stem.dir="up" accid.ges="f" />
+                              </beam>
+                           </layer>
+                        </staff>
+                        <tempo xml:id="leeh8fz" place="above" staff="1" tstamp="1" xml:lang="it" midi.bpm="144">
+                           <rend xml:id="m5odh2d" fontweight="bold">Allegro assai</rend>
+                        </tempo>
+                        <tempo xml:id="o1w2vfrn" place="above" staff="1" tstamp="1" xml:lang="it" midi.bpm="180" mm.unit="4">
+                           <rend xml:id="pk6xyvl" fontweight="bold">. = 126</rend>
+                           <rend xml:id="rgx8bjh" glyph.auth="smufl"></rend>
+                        </tempo>
+                     </measure>
+                  </section>
+               </section>
+            </score>
+         </mdiv>
+      </body>
+   </music>
+</mei>

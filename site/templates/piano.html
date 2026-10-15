@@ -38,6 +38,19 @@
       #score svg.definition-scale {
         color: inherit;
       }
+
+      /* The clicked note: fills and strokes both follow `color` (above). */
+      #score g.note.selected {
+        color: light-dark(#c4001d, #ff7b72);
+      }
+
+      #score.interactive {
+        cursor: pointer;
+      }
+
+      #note-info {
+        min-height: 3lh;
+      }
     </style>
 {% endblock head %}
 
@@ -52,6 +65,7 @@
       </div>
       <p id="score-status" role="status">Loading the score engine…</p>
       <div id="score" data-score-url="{{ page.permalink ~ page.extra.score }}"></div>
+      <p id="note-info" aria-live="polite" hidden>Click a note to describe it.</p>
 {% endblock main %}
 
 {% block scripts %}
@@ -60,16 +74,41 @@
       // a CSS pixel, so the page width it lays out to is scaled to match.
       const SCALE = 40;
 
+      // How far (CSS px) from a note a click still selects it: noteheads
+      // are only ~7px across at this scale, too small to hit reliably.
+      const CLICK_RADIUS = 24;
+
       const scoreEl = document.getElementById("score");
       const statusEl = document.getElementById("score-status");
       const navEl = document.querySelector(".score-nav");
       const prevEl = document.getElementById("prev");
       const nextEl = document.getElementById("next");
       const pageInfoEl = document.getElementById("page-info");
+      const noteInfoEl = document.getElementById("note-info");
 
       // The width of #score, in Verovio units, so each system fills the
       // column without overflowing it.
       const layoutWidth = () => Math.floor((scoreEl.clientWidth * 100) / SCALE);
+
+      // The note drawn nearest to (x, y) in viewport coordinates, if any is
+      // within CLICK_RADIUS. Distance is to each note's bounding box
+      // (notehead, stem, accidental…), so a click anywhere on or near a
+      // note counts, not only on its exact painted pixels.
+      function nearestNote(x, y) {
+        let nearest = null;
+        let best = CLICK_RADIUS;
+        for (const note of scoreEl.querySelectorAll("g.note")) {
+          const r = note.getBoundingClientRect();
+          const dx = Math.max(r.left - x, 0, x - r.right);
+          const dy = Math.max(r.top - y, 0, y - r.bottom);
+          const distance = Math.hypot(dx, dy);
+          if (distance <= best) {
+            best = distance;
+            nearest = note;
+          }
+        }
+        return nearest;
+      }
 
       async function run() {
         // Started first so the score downloads while Verovio (~7 MB) does.
@@ -77,16 +116,22 @@
 
         // Imported here rather than statically, so a failed download
         // reaches the catch below instead of silently stopping the script.
-        const [{ default: createVerovioModule }, { VerovioToolkit }] = await Promise.all([
-          import("{{ get_url(path='verovio/verovio-module.mjs') }}"),
-          import("{{ get_url(path='verovio/verovio.mjs') }}"),
-        ]);
+        const [{ default: createVerovioModule }, { VerovioToolkit }, helloCore] =
+          await Promise.all([
+            import("{{ get_url(path='verovio/verovio-module.mjs') }}"),
+            import("{{ get_url(path='verovio/verovio.mjs') }}"),
+            import("{{ get_url(path='wasm/hello_core.js') }}"),
+          ]);
+        await helloCore.default();
         const tk = new VerovioToolkit(await createVerovioModule());
         tk.setOptions({
           scale: SCALE,
           pageWidth: layoutWidth(),
           adjustPageHeight: true,
           breaks: "auto",
+          // Same note ids on every load, for the e2e tests and for
+          // hello-core's MEI fixture (crates/hello-core/tests/).
+          xmlIdSeed: 1,
         });
 
         statusEl.textContent = "Loading the score…";
@@ -99,13 +144,24 @@
           throw new Error("Verovio could not read the score");
         }
 
+        // Verovio's MEI conversion of the score, read once by Rust
+        // (hello-core's NoteIndex). Its note xml:ids are the ids of the
+        // <g class="note"> elements in the SVG.
+        const notes = new helloCore.NoteIndex(tk.getMEI());
+
         let page = 1;
         let total = tk.getPageCount();
+        let selectedId = null;
         const show = () => {
           scoreEl.innerHTML = tk.renderToSVG(page);
           pageInfoEl.textContent = `${page} / ${total}`;
           prevEl.disabled = page <= 1;
           nextEl.disabled = page >= total;
+          // Re-rendering replaces the SVG, so re-mark the selected note
+          // (if it's on this page).
+          if (selectedId) {
+            document.getElementById(selectedId)?.classList.add("selected");
+          }
         };
         prevEl.addEventListener("click", () => {
           if (page > 1) {
@@ -120,9 +176,19 @@
           }
         });
 
+        scoreEl.addEventListener("click", (event) => {
+          const note = nearestNote(event.clientX, event.clientY);
+          if (!note) return;
+          scoreEl.querySelector("g.note.selected")?.classList.remove("selected");
+          note.classList.add("selected");
+          selectedId = note.id;
+          noteInfoEl.textContent =
+            notes.describeNote(note.id) ?? "No details are available for this note.";
+        });
+
         // Re-flow the score into the new width when the column resizes
-        // (window resize, phone rotation), keeping the same page if it
-        // still exists.
+        // (window resize, phone rotation), staying on the selected note's
+        // page, or else the same page if it still exists.
         let lastWidth = layoutWidth();
         new ResizeObserver(() => {
           const width = layoutWidth();
@@ -131,13 +197,15 @@
           tk.setOptions({ pageWidth: width });
           tk.redoLayout();
           total = tk.getPageCount();
-          page = Math.min(page, total);
+          page = (selectedId && tk.getPageWithElement(selectedId)) || Math.min(page, total);
           show();
         }).observe(scoreEl);
 
         show();
         statusEl.hidden = true;
         navEl.hidden = false;
+        noteInfoEl.hidden = false;
+        scoreEl.classList.add("interactive");
       }
 
       run().catch((err) => {

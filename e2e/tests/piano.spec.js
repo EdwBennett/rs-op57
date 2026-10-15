@@ -62,6 +62,50 @@ async function inkPixels(page, locator) {
   }, png);
 }
 
+/**
+ * Counts the highlight-coloured (strongly red) pixels in a screenshot of
+ * `locator` — #c4001d in light mode, #ff7b72 in dark (see piano.html).
+ * @param {import("@playwright/test").Page} page
+ * @param {import("@playwright/test").Locator} locator
+ */
+async function redPixels(page, locator) {
+  const png = (await locator.screenshot()).toString("base64");
+  return page.evaluate(async (data) => {
+    const blob = await (await fetch(`data:image/png;base64,${data}`)).blob();
+    const bitmap = await createImageBitmap(blob);
+    const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
+    const ctx = /** @type {OffscreenCanvasRenderingContext2D} */ (canvas.getContext("2d"));
+    ctx.drawImage(bitmap, 0, 0);
+    const px = ctx.getImageData(0, 0, bitmap.width, bitmap.height).data;
+    let red = 0;
+    for (let i = 0; i < px.length; i += 4) {
+      if (px[i] - Math.max(px[i + 1], px[i + 2]) > 80) red++;
+    }
+    return red;
+  }, png);
+}
+
+/**
+ * Clicks the `index`-th note (0-based, in score order), at the centre of
+ * its bounding box plus an optional offset — like a person would, with no
+ * guarantee of landing on a painted pixel.
+ * @param {import("@playwright/test").Page} page
+ * @param {number} index
+ * @param {{ dx?: number, dy?: number }} [offset]
+ */
+async function clickNote(page, index, { dx = 0, dy = 0 } = {}) {
+  const box = await page.locator("#score g.note").nth(index).boundingBox();
+  if (!box) throw new Error(`note ${index} has no bounding box`);
+  await page.mouse.click(box.x + box.width / 2 + dx, box.y + box.height / 2 + dy);
+}
+
+// The third right-hand note. Its flat comes from the key signature; the
+// exact wording is hello-core's (crates/hello-core/tests/describe_note.rs).
+const A_FLAT_3 =
+  "A♭3 — sixteenth note on the treble staff (staff 1), measure 1 (the opening upbeat), " +
+  "2½ eighths into the measure. Key signature: 4 flats (A♭ major or F minor). " +
+  "Time signature: 12/8. MIDI note 56, 207.7 Hz.";
+
 for (const colorScheme of /** @type {const} */ (["light", "dark"])) {
   test.describe(`${colorScheme} mode`, () => {
     test.use({ colorScheme });
@@ -79,6 +123,33 @@ for (const colorScheme of /** @type {const} */ (["light", "dark"])) {
       // lines, clefs and noteheads cover a few percent of the area.
       const { ink, total } = await inkPixels(page, svg);
       expect(ink / total).toBeGreaterThan(0.01);
+    });
+
+    test("clicking a note highlights and describes it", async ({ page }) => {
+      const svg = await openScore(page);
+      const notes = page.locator("#score g.note");
+      const info = page.locator("#note-info");
+      await expect(info).toHaveText("Click a note to describe it.");
+      // Not 0: anti-aliased text can leave a few coloured fringe pixels.
+      const redBefore = await redPixels(page, svg);
+      const firstNoteRedBefore = await redPixels(page, notes.nth(0));
+
+      await clickNote(page, 2);
+      await expect(page.locator("#score g.note.selected")).toHaveCount(1);
+      await expect(notes.nth(2)).toHaveClass(/\bselected\b/);
+      // Same id as in hello-core's MEI fixture: xmlIdSeed keeps them stable.
+      await expect(notes.nth(2)).toHaveAttribute("id", "xfggj11");
+      await expect(info).toHaveText(A_FLAT_3);
+      // The highlight really is drawn: only the selected note turns red.
+      expect(await redPixels(page, svg)).toBeGreaterThan(redBefore + 20);
+      expect(await redPixels(page, notes.nth(2))).toBeGreaterThan(20);
+      expect(await redPixels(page, notes.nth(0))).toBe(firstNoteRedBefore);
+
+      // Choosing another note moves the highlight and the description.
+      await clickNote(page, 3);
+      await expect(page.locator("#score g.note.selected")).toHaveCount(1);
+      await expect(notes.nth(3)).toHaveClass(/\bselected\b/);
+      await expect(info).toHaveText(/^D♭2 — quarter note on the bass staff \(staff 2\)/);
     });
   });
 }
@@ -103,4 +174,24 @@ test("score fits a phone-width screen", async ({ page }) => {
   expect(overflow).toEqual({ page: 0, score: 0 });
 
   await expect(page.locator("#score g.note")).toHaveCount(NOTES);
+});
+
+test("a tap near a note selects it on a phone-width screen", async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 800 });
+  const svg = await openScore(page);
+  const info = page.locator("#note-info");
+
+  // Well off the note's own bounding box, but within the page's
+  // CLICK_RADIUS: still selects it.
+  const box = await page.locator("#score g.note").nth(2).boundingBox();
+  if (!box) throw new Error("note has no bounding box");
+  await page.mouse.click(box.x + box.width + 12, box.y + box.height / 2);
+  await expect(info).toHaveText(A_FLAT_3);
+
+  // Far from any note (the clefs at the left edge): nothing changes.
+  const svgBox = await svg.boundingBox();
+  if (!svgBox) throw new Error("score has no bounding box");
+  await page.mouse.click(svgBox.x + 4, svgBox.y + svgBox.height - 4);
+  await expect(page.locator("#score g.note.selected")).toHaveCount(1);
+  await expect(info).toHaveText(A_FLAT_3);
 });
