@@ -107,6 +107,10 @@ const A_FLAT_3 =
   "2½ eighths into the measure. Key signature: 4 flats (A♭ major or F minor). " +
   "Time signature: 12/8. MIDI note 56, 207.7 Hz.";
 
+// The first right-hand note.
+const UPBEAT_C4 =
+  /^C4 — quarter note on the treble staff \(staff 1\), measure 1 \(the opening upbeat\), at the start/;
+
 for (const colorScheme of /** @type {const} */ (["light", "dark"])) {
   test.describe(`${colorScheme} mode`, () => {
     test.use({ colorScheme });
@@ -155,6 +159,17 @@ for (const colorScheme of /** @type {const} */ (["light", "dark"])) {
   });
 }
 
+test("all the measures share one line on a wide screen", async ({ page }) => {
+  await page.setViewportSize({ width: 1600, height: 900 });
+  await openScore(page);
+
+  await expect(page.locator("#score g.system")).toHaveCount(1);
+  await expect(page.locator("#score g.measure")).toHaveCount(5);
+  // At full size (not shrunk to fit): noteheads ~9px wide, not ~3px.
+  const box = await page.locator("#score g.note").nth(0).boundingBox();
+  expect(box?.width).toBeGreaterThan(6);
+});
+
 test("score fits a phone-width screen", async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 800 });
   const svg = await openScore(page);
@@ -183,16 +198,18 @@ test("a tap near a note selects it on a phone-width screen", async ({ page }) =>
   const info = page.locator("#note-info");
 
   // Well off the note's own bounding box, but within the page's
-  // CLICK_RADIUS: still selects it.
-  const box = await page.locator("#score g.note").nth(2).boundingBox();
+  // CLICK_RADIUS: still selects it. The whole score is shrunk onto one
+  // line here, so notes are packed tight; tap left of the first note,
+  // where there is no other note to land nearer to.
+  const box = await page.locator("#score g.note").nth(0).boundingBox();
   if (!box) throw new Error("note has no bounding box");
-  await page.mouse.click(box.x + box.width + 12, box.y + box.height / 2);
-  await expect(info).toHaveText(A_FLAT_3);
+  await page.mouse.click(box.x - 12, box.y + box.height / 2);
+  await expect(info).toHaveText(UPBEAT_C4);
 
   // Far from any note (the clefs at the left edge): nothing changes.
   const svgBox = await svg.boundingBox();
   if (!svgBox) throw new Error("score has no bounding box");
   await page.mouse.click(svgBox.x + 4, svgBox.y + svgBox.height - 4);
   await expect(page.locator("#score g.note.selected")).toHaveCount(1);
-  await expect(info).toHaveText(A_FLAT_3);
+  await expect(info).toHaveText(UPBEAT_C4);
 });

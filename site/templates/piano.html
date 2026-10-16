@@ -9,6 +9,12 @@
 
 {% block head %}
     <style>
+      /* Wider than base.html's text column, so the whole excerpt fits on
+         one line (one system) at full size on a wide screen. */
+      body {
+        max-width: 90rem;
+      }
+
       .score-nav {
         display: flex;
         align-items: center;
@@ -22,7 +28,7 @@
 
       #score {
         margin-top: 1rem;
-        /* Safety net only: the layout is sized to fit (see layoutWidth). */
+        /* Safety net only: the score is scaled to fit (see layout). */
         overflow-x: auto;
       }
 
@@ -70,8 +76,8 @@
 
 {% block scripts %}
     <script type="module">
-      // Verovio's zoom, as a percentage. Its layout units are 1/SCALE% of
-      // a CSS pixel, so the page width it lays out to is scaled to match.
+      // Verovio's zoom, as a percentage: the most it is drawn at. Its
+      // layout units are 1/scale% of a CSS pixel.
       const SCALE = 40;
 
       // How far (CSS px) from a note a click still selects it: noteheads
@@ -86,9 +92,21 @@
       const pageInfoEl = document.getElementById("page-info");
       const noteInfoEl = document.getElementById("note-info");
 
-      // The width of #score, in Verovio units, so each system fills the
-      // column without overflowing it.
-      const layoutWidth = () => Math.floor((scoreEl.clientWidth * 100) / SCALE);
+      // Lays the whole score out as one system (no line breaks), at SCALE
+      // if it fits the width of #score, or else shrunk until it does.
+      // `adjustPageWidth` makes the SVG exactly as wide as the system, so
+      // its width tells us how far to shrink.
+      function layout(tk) {
+        const available = scoreEl.clientWidth;
+        let scale = SCALE;
+        for (;;) {
+          tk.setOptions({ scale });
+          tk.redoLayout();
+          const width = tk.renderToSVG(1).match(/<svg[^>]*\bwidth="([\d.]+)px"/)?.[1];
+          if (!width || width <= available || scale <= 1) return;
+          scale = Math.max(1, Math.min(scale - 1, Math.floor((scale * available) / width)));
+        }
+      }
 
       // The note drawn nearest to (x, y) in viewport coordinates, if any is
       // within CLICK_RADIUS. Distance is to each note's bounding box
@@ -126,9 +144,9 @@
         const tk = new VerovioToolkit(await createVerovioModule());
         tk.setOptions({
           scale: SCALE,
-          pageWidth: layoutWidth(),
+          adjustPageWidth: true,
           adjustPageHeight: true,
-          breaks: "auto",
+          breaks: "none",
           // Same note ids on every load, for the e2e tests and for
           // hello-core's MEI fixture (crates/hello-core/tests/).
           xmlIdSeed: 1,
@@ -143,6 +161,7 @@
         if (!tk.loadZipDataBuffer(await response.arrayBuffer())) {
           throw new Error("Verovio could not read the score");
         }
+        layout(tk);
 
         // Verovio's MEI conversion of the score, read once by Rust
         // (hello-core's NoteIndex). Its note xml:ids are the ids of the
@@ -186,16 +205,15 @@
             notes.describeNote(note.id) ?? "No details are available for this note.";
         });
 
-        // Re-flow the score into the new width when the column resizes
+        // Re-fit the score to the new width when the column resizes
         // (window resize, phone rotation), staying on the selected note's
         // page, or else the same page if it still exists.
-        let lastWidth = layoutWidth();
+        let lastWidth = scoreEl.clientWidth;
         new ResizeObserver(() => {
-          const width = layoutWidth();
+          const width = scoreEl.clientWidth;
           if (width === lastWidth) return;
           lastWidth = width;
-          tk.setOptions({ pageWidth: width });
-          tk.redoLayout();
+          layout(tk);
           total = tk.getPageCount();
           page = (selectedId && tk.getPageWithElement(selectedId)) || Math.min(page, total);
           show();
