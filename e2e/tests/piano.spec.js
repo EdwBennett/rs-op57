@@ -1,10 +1,11 @@
 // @ts-check
 const { test, expect } = require("@playwright/test");
 
-// The score (site/content/piano/op57.mxl) is a single measure: three notes
-// in the right hand's treble staff, three in the left hand's bass staff.
-const NOTES = 6;
-const STAVES = 2;
+// The score (site/content/piano/appassionata.mxl) is the opening upbeat and
+// four more measures, each with a treble and a bass staff: 52 notes in all
+// (chord notes count one each).
+const NOTES = 52;
+const STAVES = 10;
 
 // Verovio is a ~7 MB download plus WASM start-up, so allow longer than
 // Playwright's 5 s default for the score to appear.
@@ -100,7 +101,7 @@ async function clickNote(page, index, { dx = 0, dy = 0 } = {}) {
 }
 
 // The third right-hand note. Its flat comes from the key signature; the
-// exact wording is hello-core's (crates/hello-core/tests/describe_note.rs).
+// exact wording is hello-core's (crates/hello-core/tests/describe_appassionata.rs).
 const A_FLAT_3 =
   "A♭3 — sixteenth note on the treble staff (staff 1), measure 1 (the opening upbeat), " +
   "2½ eighths into the measure. Key signature: 4 flats (A♭ major or F minor). " +
@@ -138,7 +139,7 @@ for (const colorScheme of /** @type {const} */ (["light", "dark"])) {
       await expect(page.locator("#score g.note.selected")).toHaveCount(1);
       await expect(notes.nth(2)).toHaveClass(/\bselected\b/);
       // Same id as in hello-core's MEI fixture: xmlIdSeed keeps them stable.
-      await expect(notes.nth(2)).toHaveAttribute("id", "xfggj11");
+      await expect(notes.nth(2)).toHaveAttribute("id", "c1kyp1ws");
       await expect(info).toHaveText(A_FLAT_3);
       // The highlight really is drawn: only the selected note turns red.
       expect(await redPixels(page, svg)).toBeGreaterThan(redBefore + 20);
@@ -149,7 +150,7 @@ for (const colorScheme of /** @type {const} */ (["light", "dark"])) {
       await clickNote(page, 3);
       await expect(page.locator("#score g.note.selected")).toHaveCount(1);
       await expect(notes.nth(3)).toHaveClass(/\bselected\b/);
-      await expect(info).toHaveText(/^D♭2 — quarter note on the bass staff \(staff 2\)/);
+      await expect(info).toHaveText(/^C2 — quarter note on the bass staff \(staff 2\)/);
     });
   });
 }

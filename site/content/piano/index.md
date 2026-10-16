@@ -4,7 +4,7 @@ template = "piano.html"
 
 [extra]
 # MusicXML score, colocated with this page, engraved in the browser by Verovio.
-score = "op57.mxl"
+score = "appassionata.mxl"
 +++
 
 This score is engraved in your browser by [Verovio](https://www.verovio.org), a music-engraving

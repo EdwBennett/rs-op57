@@ -16,7 +16,7 @@ Rust (crates/hello-core/src/notes.rs)
 - WebAssembly wrapper in lib.rs: a NoteIndex class with a describeNote method.
 - Tests:
   - 9 unit tests using a small hand-written score that covers chords, dots, grace notes, written accidentals, clef and key changes, and unusual (microtonal) accidentals.
-  - 3 tests in tests/describe_note.rs against the real MEI Verovio produces for op57, saved in tests/fixtures/op57.mei.
+  - tests in tests/describe_appassionata.rs against the real MEI Verovio produces for the site's score, saved in tests/fixtures/appassionata.mei (originally op57, since replaced).
 
 Page (site/templates/piano.html)
 - Clicking: a click picks the note nearest the pointer, within 24px, because the noteheads are only about 7px wide. A click far from any note does nothing.
@@ -34,7 +34,7 @@ Browser tests (in e2e/tests/piano.spec.js)
 
 Things to know
 - In the test browser the ♭ in the description looks small. That's the font, not the text. Check how it looks in your own browser.
-- If you upgrade Verovio, the ids in its MEI may change. Regenerate crates/hello-core/tests/fixtures/op57.mei; the test file explains how.
+- If you upgrade Verovio, the ids in its MEI may change. Regenerate crates/hello-core/tests/fixtures/appassionata.mei; the test file explains how.
 - Not done yet:
   - Clicking rests.
   - Selecting notes with the keyboard.
